@@ -611,6 +611,12 @@ void CFE_TIME_ToneUpdate(void);
 
 /*---------------------------------------------------------------------------------------*/
 /**
+ * @brief Function for a client to process server latched tone
+ */
+void CFE_TIME_ProcessServerToneLatch(CFE_TIME_SysTime_t ToneSignalLatch);
+
+/*---------------------------------------------------------------------------------------*/
+/**
  * @brief Tone signal ISR
  */
 void CFE_TIME_Tone1HzISR(void);

@@ -954,6 +954,100 @@ void CFE_TIME_Local1HzTimerCallback(osal_id_t TimerId, void *Arg)
     CFE_TIME_Local1HzISR();
 }
 
+#if (CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH == true)
+/*----------------------------------------------------------------
+ *
+ * Application-scope internal function
+ * See description in header file for argument/return detail
+ *
+ *-----------------------------------------------------------------*/
+void CFE_TIME_ProcessServerToneLatch(CFE_TIME_SysTime_t ToneSignalLatch)
+{
+    CFE_TIME_SysTime_t Elapsed;
+    CFE_TIME_Compare_t Result;
+
+    /*
+    ** Compute elapsed time since the previous tone signal...
+    */
+    Result = CFE_TIME_Compare(ToneSignalLatch, CFE_TIME_Global.ToneSignalLatch);
+
+    if (Result == CFE_TIME_A_LT_B)
+    {
+        /*
+        ** Local clock has rolled over...
+        */
+        Elapsed = CFE_TIME_Subtract(CFE_TIME_Global.MaxLocalClock, CFE_TIME_Global.ToneSignalLatch);
+        Elapsed = CFE_TIME_Add(Elapsed, ToneSignalLatch);
+    }
+    else
+    {
+        /*
+        ** Normal case...
+        */
+        Elapsed = CFE_TIME_Subtract(ToneSignalLatch, CFE_TIME_Global.ToneSignalLatch);
+    }
+
+    /*
+    ** Verify that tone occurred ~1 second after previous tone...
+    */
+    if (((Elapsed.Seconds == 1) && (Elapsed.Subseconds < CFE_TIME_Global.ToneOverLimit))
+        || ((Elapsed.Seconds == 0) && (Elapsed.Subseconds > CFE_TIME_Global.ToneUnderLimit)))
+    {
+        /*
+        ** Maintain count of valid tone signal interrupts...
+        **   (set to zero by reset command)
+        **
+	**  May need a better name for this variable
+        */
+        CFE_TIME_Global.ToneIntCounter++;
+
+        /* Since the tone occurred ~1 seconds after the previous one, we
+        ** can mark this tone as 'good'
+        */
+        CFE_TIME_Global.IsToneGood = true;
+
+/*
+** Maintain virtual MET as count of valid tone signal interrupts...
+**   (not set to zero by reset command)
+*/
+#if (CFE_PLATFORM_TIME_CFG_VIRTUAL == true)
+        CFE_TIME_Global.VirtualMET++;
+#endif
+
+/*
+** Maintain virtual MET as count read from h/w MET register...
+*/
+#if (CFE_PLATFORM_TIME_CFG_VIRTUAL != true)
+        OS_GetLocalMET(&CFE_TIME_Global.VirtualMET);
+#endif
+
+    }
+    else
+    {
+        /*
+        ** Maintain count of invalid tone signal interrupts...
+        **   (set to zero by reset command)
+	** APC: May need a better counter here.
+        */
+        CFE_TIME_Global.ToneIntErrorCounter++;
+
+        /* Since the tone didn't occur ~1 seconds after the previous one, we
+        ** can mark this tone as 'not good'
+        */
+        CFE_TIME_Global.IsToneGood = false;
+    }
+
+    /*
+    ** Save local time latch of most recent tone signal...
+    */
+    CFE_TIME_Global.ToneSignalLatch = ToneSignalLatch;
+
+    /* Notify registered time synchronization applications */
+    CFE_TIME_NotifyTimeSynchApps();
+}
+#endif
+
+#if (CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH == false)
 /*----------------------------------------------------------------
  *
  * Application-scope internal function
@@ -973,6 +1067,11 @@ void CFE_TIME_Tone1HzISR(void)
     ** Latch the local clock when the tone signal occurred...
     */
     ToneSignalLatch = CFE_TIME_LatchClock();
+
+    /* Note: Could use this option here, but any reason not to include the server latch time in the
+     * packet for all configs? if (CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH == true)
+     */
+    CFE_TIME_Global.ToneSignalCmd.Payload.ServerToneSignalLatch = ToneSignalLatch;
 
     /*
     ** Compute elapsed time since the previous tone signal...
@@ -1115,6 +1214,7 @@ void CFE_TIME_Tone1HzTask(void)
     **    had an error in the creation of the semaphore.
     */
 }
+#endif
 
 /*----------------------------------------------------------------
  *
