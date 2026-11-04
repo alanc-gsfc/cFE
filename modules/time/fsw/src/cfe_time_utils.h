@@ -40,6 +40,9 @@
 #define CFE_TIME_NEGATIVE 0x80000000 /* ~ 68 * 31,536,000 seconds */
 
 /*************************************************************************/
+void CFE_TIME_DebugLogPrint(const char * debug_string);
+void CFE_TIME_DebugLogOpen(void);
+void CFE_TIME_DebugLogClose(void);
 
 /*
 ** Main task definitions...

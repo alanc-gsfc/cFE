@@ -40,6 +40,90 @@
 
 #include <string.h>
 
+
+/* --------------------- DEBUG ----------------------------*/
+#include <stdio.h>
+#include <time.h>
+
+FILE *CFE_TIME_fptr;
+
+void CFE_TIME_DebugLogOpen(void)
+{
+    uint32 proc_id = CFE_PSP_GetProcessorId();
+    char   file_name[32];
+    snprintf(file_name,32,"cpu_%d_time_log.csv",proc_id);
+    CFE_TIME_fptr = fopen(file_name, "w");
+    if (CFE_TIME_fptr != NULL)
+        fputs("Clock State,System Time Seconds,System Time Subseconds,cFS Time Seconds, cFS Time Subseconds,Latch Time Seconds, Latch Time Subseconds, Debug Info\n",CFE_TIME_fptr);
+}
+
+void CFE_TIME_DebugLogClose(void)
+{
+    fclose(CFE_TIME_fptr);
+}
+
+CFE_TIME_ClockState_Enum_t CFE_TIME_GetClockState(void);
+uint16 CFE_TIME_GetClockInfo(void);
+
+static void uint16_to_binary_str(uint16 value, char *output_str)
+{
+    // Loop through all 16 bits, starting from the Most Significant Bit (MSB)
+    for (int i = 15; i >= 0; i--) {
+        // Shift the value to the right to align the target bit to the 1st position,
+        // then isolate it using a bitwise AND with 1.
+        int bit = (value >> i) & 1;
+
+        // Convert the numeric bit (0 or 1) to its ASCII character representation ('0' or '1')
+        // and place it in the string buffer.
+        output_str[15 - i] = bit + '0';
+    }
+
+    // Null-terminate the string to make it valid for functions like printf
+    output_str[16] = '\0';
+}
+
+void CFE_TIME_DebugLogPrint(const char * debug_string)
+{
+    struct timespec    ts;
+    CFE_TIME_SysTime_t time;
+    CFE_TIME_SysTime_t latch_time;
+
+    char print_string[256];
+    char clock_string[20];
+
+    uint16 clock_info = CFE_TIME_GetClockInfo();;
+
+    uint16_to_binary_str(clock_info, clock_string);
+
+    latch_time = CFE_TIME_LatchClock();
+    time = CFE_TIME_GetTime();
+    // Get current wall-clock time
+    if (clock_gettime(CLOCK_REALTIME, &ts) == 0)
+    {
+        snprintf(print_string,256,"%s,%lu,%lu,%u,%u,%u,%u,%s",
+                        clock_string,ts.tv_sec,ts.tv_nsec,time.Seconds,time.Subseconds,latch_time.Seconds, latch_time.Subseconds,debug_string);
+#if 1
+        if (CFE_TIME_fptr != NULL)
+        {
+            if (fputs(print_string, CFE_TIME_fptr) == EOF)
+            {
+                printf("Error writing to the TIME log file, closing it\n");
+                CFE_TIME_DebugLogClose();
+            }
+	    fflush(CFE_TIME_fptr);
+        }
+        else
+        {
+            OS_printf(print_string);
+        }
+#endif
+    }
+    else
+    {
+        OS_printf("CFE TIME: Error calling clock_gettime\n");
+    }
+}
+
 /*----------------------------------------------------------------
  *
  * Application-scope internal function

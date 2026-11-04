@@ -873,6 +873,7 @@ void CFE_TIME_ToneUpdate(void)
     */
     if (NextState->ClockFlyState == CFE_TIME_FlywheelState_IS_FLY)
     {
+        CFE_TIME_DebugLogPrint("ToneUpdate: FlywheelState = NO_FLY\n");
         NextState->ClockFlyState       = CFE_TIME_FlywheelState_NO_FLY;
         CFE_TIME_Global.ServerFlyState = CFE_TIME_FlywheelState_NO_FLY;
         NewFlywheelStatus              = true;
@@ -910,6 +911,7 @@ void CFE_TIME_ToneUpdate(void)
         */
         if (CFE_TIME_Global.PendingState == CFE_TIME_ClockState_FLYWHEEL)
         {
+            CFE_TIME_DebugLogPrint("Tone: ServerFlyState = FLY\n");
             CFE_TIME_Global.ServerFlyState = CFE_TIME_FlywheelState_IS_FLY;
         }
         else
@@ -924,6 +926,7 @@ void CFE_TIME_ToneUpdate(void)
     */
     if (NextState->ClockFlyState == CFE_TIME_FlywheelState_IS_FLY)
     {
+        CFE_TIME_DebugLogPrint("ToneUpdate: FlywheelState = NO_FLY\n");
         NextState->ClockFlyState = CFE_TIME_FlywheelState_NO_FLY;
         NewFlywheelStatus        = true;
     }
@@ -973,7 +976,7 @@ CFE_Status_t CFE_TIME_Process1HzTone(CFE_TIME_SysTime_t ToneSignalLatch)
 
     if (Result == CFE_TIME_A_LT_B)
     {
-        OS_printf("TIME->Process1HzTone -> detected rollover condition\n");
+        CFE_TIME_DebugLogPrint("Rollover detected\n");
 
         /*
         ** Local clock has rolled over...
@@ -1031,7 +1034,7 @@ CFE_Status_t CFE_TIME_Process1HzTone(CFE_TIME_SysTime_t ToneSignalLatch)
     }
     else
     {
-        OS_printf("TIME->Process1HzTone -> Tone appeared too late\n");
+        CFE_TIME_DebugLogPrint("Tone too late\n");
         /*
         ** Maintain count of invalid tone signal interrupts...
         **   (set to zero by reset command)
@@ -1223,6 +1226,7 @@ void CFE_TIME_Local1HzStateMachine(void)
             /*
             ** Change current state to "fly-wheel"...
             */
+            CFE_TIME_DebugLogPrint("StateMachine: FlywheelState = FLY\n");
             NextState->ClockFlyState = CFE_TIME_FlywheelState_IS_FLY;
 #if (CFE_PLATFORM_TIME_CFG_SERVER == true)
             CFE_TIME_Global.ServerFlyState = CFE_TIME_FlywheelState_IS_FLY;

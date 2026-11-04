@@ -71,6 +71,9 @@ void CFE_TIME_TaskMain(void)
 
     Status = CFE_TIME_TaskInit();
 
+    CFE_TIME_DebugLogOpen();
+
+
     if (Status != CFE_SUCCESS)
     {
         CFE_ES_WriteToSysLog("%s: Application Init Failed,RC=0x%08X\n", __func__, (unsigned int)Status);

@@ -258,6 +258,14 @@ void CFE_TIME_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr)
     }
     else if (CFE_SB_MsgId_Equal(MessageID, DATA_CMD_MID))
     {
+
+
+#if (CFE_PLATFORM_TIME_CFG_CLIENT == true)
+CFE_TIME_DebugLogPrint("Client rcvd TONE DATA\n");
+#endif
+#if (CFE_PLATFORM_TIME_CFG_SERVER == true)
+CFE_TIME_DebugLogPrint("Srv rcvd TONE DATA\n");
+#endif
         /*
         ** Time at the tone "data"...
         */
@@ -265,6 +273,12 @@ void CFE_TIME_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr)
     }
     else if (CFE_SB_MsgId_Equal(MessageID, TONE_CMD_MID))
     {
+#if (CFE_PLATFORM_TIME_CFG_CLIENT == true)
+CFE_TIME_DebugLogPrint("Client rcvd TONE SIGNAL\n");
+#endif
+#if (CFE_PLATFORM_TIME_CFG_SERVER == true)
+CFE_TIME_DebugLogPrint("Srv rcvd TONE SIGNAL\n");
+#endif
         /*
         ** Time at the tone "signal"...
         */
@@ -273,6 +287,7 @@ void CFE_TIME_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr)
 #if (CFE_PLATFORM_TIME_CFG_SERVER == true)
     else if (CFE_SB_MsgId_Equal(MessageID, SEND_CMD_MID))
     {
+        CFE_TIME_DebugLogPrint("rcvd SEND_CMD\n");
         /*
         ** Request for time at the tone "data"...
         */
