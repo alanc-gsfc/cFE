@@ -1348,7 +1348,7 @@ void Test_PipeCmds(void)
     CFE_TIME_Tone1HzISR();
 #else
     CFE_TIME_SysTime_t TempToneSignalLatch = {123,0};
-    CFE_TIME_ProcessServerToneLatch(TempToneSignalLatch);
+    CFE_TIME_ServerToneSignal(TempToneSignalLatch);
 #endif
     UtAssert_UINT32_EQ(CFE_TIME_Global.ToneSignalLatch.Seconds, 123);
     UtAssert_UINT32_EQ(CFE_TIME_Global.ToneSignalLatch.Subseconds, 0);
@@ -2491,7 +2491,7 @@ void Test_1Hz(void)
 #if (CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH == false)
     CFE_TIME_Tone1HzISR();
 #else
-    CFE_TIME_ProcessServerToneLatch(TempToneSignalLatch);
+    CFE_TIME_ServerToneSignal(TempToneSignalLatch);
 #endif
 
     UtAssert_BOOL_FALSE(CFE_TIME_Global.IsToneGood);
@@ -2523,7 +2523,7 @@ void Test_1Hz(void)
     CFE_TIME_Global.ToneSignalLatch.Subseconds = 0;
     TempToneSignalLatch.Seconds = 2;
     TempToneSignalLatch.Subseconds = 0;
-    CFE_TIME_ProcessServerToneLatch(TempToneSignalLatch);
+    CFE_TIME_ServerToneSignal(TempToneSignalLatch);
 #endif
     UtAssert_INT32_EQ(ut_time_CallbackCalled, 3);
 
@@ -2568,7 +2568,7 @@ void Test_1Hz(void)
 #if (CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH == false)
     CFE_TIME_Tone1HzISR();
 #else
-    CFE_TIME_ProcessServerToneLatch(TempToneSignalLatch);
+    CFE_TIME_ServerToneSignal(TempToneSignalLatch);
 #endif
     UtAssert_BOOL_FALSE(CFE_TIME_Global.IsToneGood);
 
@@ -2583,7 +2583,7 @@ void Test_1Hz(void)
 #else
     TempToneSignalLatch.Seconds = 1;
     TempToneSignalLatch.Subseconds = 0;
-    CFE_TIME_ProcessServerToneLatch(TempToneSignalLatch);
+    CFE_TIME_ServerToneSignal(TempToneSignalLatch);
 #endif
     UtAssert_BOOL_TRUE(CFE_TIME_Global.IsToneGood);
 
@@ -2598,7 +2598,7 @@ void Test_1Hz(void)
 #else
     TempToneSignalLatch.Seconds = 0;
     TempToneSignalLatch.Subseconds = 0;
-    CFE_TIME_ProcessServerToneLatch(TempToneSignalLatch);
+    CFE_TIME_ServerToneSignal(TempToneSignalLatch);
 #endif
     UtAssert_BOOL_FALSE(CFE_TIME_Global.IsToneGood);
 

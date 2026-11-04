@@ -642,7 +642,7 @@ void CFE_TIME_ToneData(const CFE_TIME_ToneDataCmd_Payload_t *ToneDataCmd)
  * See description in header file for argument/return detail
  *
  *-----------------------------------------------------------------*/
-void CFE_TIME_ToneSignal(void)
+void CFE_TIME_ToneSignal(CFE_TIME_SysTime_t ToneSignalLatch)
 {
 /*
 ** If the data packet is designed to arrive after the tone signal...
@@ -666,7 +666,7 @@ void CFE_TIME_ToneSignal(void)
 **    now start using the new data to compute time.
 */
 #if (CFE_MISSION_TIME_AT_TONE_WILL_BE == true)
-    CFE_TIME_ToneVerify(CFE_TIME_Global.ToneDataLatch, CFE_TIME_Global.ToneSignalLatch);
+    CFE_TIME_ToneVerify(CFE_TIME_Global.ToneDataLatch, ToneSignalLatch);
 #endif
 
     /*
@@ -954,15 +954,15 @@ void CFE_TIME_Local1HzTimerCallback(osal_id_t TimerId, void *Arg)
     CFE_TIME_Local1HzISR();
 }
 
-#if (CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH == true)
 /*----------------------------------------------------------------
  *
  * Application-scope internal function
  * See description in header file for argument/return detail
  *
  *-----------------------------------------------------------------*/
-void CFE_TIME_ProcessServerToneLatch(CFE_TIME_SysTime_t ToneSignalLatch)
+CFE_Status_t CFE_TIME_Process1HzTone(CFE_TIME_SysTime_t ToneSignalLatch)
 {
+    CFE_Status_t       Status = CFE_SUCCESS;
     CFE_TIME_SysTime_t Elapsed;
     CFE_TIME_Compare_t Result;
 
@@ -973,6 +973,8 @@ void CFE_TIME_ProcessServerToneLatch(CFE_TIME_SysTime_t ToneSignalLatch)
 
     if (Result == CFE_TIME_A_LT_B)
     {
+        OS_printf("TIME->Process1HzTone -> detected rollover condition\n");
+
         /*
         ** Local clock has rolled over...
         */
@@ -986,6 +988,11 @@ void CFE_TIME_ProcessServerToneLatch(CFE_TIME_SysTime_t ToneSignalLatch)
         */
         Elapsed = CFE_TIME_Subtract(ToneSignalLatch, CFE_TIME_Global.ToneSignalLatch);
     }
+
+    /*
+    ** Save local time latch of most recent tone signal...
+    */
+    CFE_TIME_Global.ToneSignalLatch = ToneSignalLatch;
 
     /*
     ** Verify that tone occurred ~1 second after previous tone...
@@ -1024,6 +1031,7 @@ void CFE_TIME_ProcessServerToneLatch(CFE_TIME_SysTime_t ToneSignalLatch)
     }
     else
     {
+        OS_printf("TIME->Process1HzTone -> Tone appeared too late\n");
         /*
         ** Maintain count of invalid tone signal interrupts...
         **   (set to zero by reset command)
@@ -1035,12 +1043,22 @@ void CFE_TIME_ProcessServerToneLatch(CFE_TIME_SysTime_t ToneSignalLatch)
         ** can mark this tone as 'not good'
         */
         CFE_TIME_Global.IsToneGood = false;
+
+	Status = CFE_STATUS_RANGE_ERROR;
     }
 
-    /*
-    ** Save local time latch of most recent tone signal...
-    */
-    CFE_TIME_Global.ToneSignalLatch = ToneSignalLatch;
+    return Status;
+}
+#if (CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH == true)
+/*----------------------------------------------------------------
+ *
+ * Application-scope internal function
+ * See description in header file for argument/return detail
+ *
+ *-----------------------------------------------------------------*/
+void CFE_TIME_ServerToneSignal(CFE_TIME_SysTime_t ToneSignalLatch)
+{
+    CFE_TIME_Process1HzTone(ToneSignalLatch);
 
     /* Notify registered time synchronization applications */
     CFE_TIME_NotifyTimeSynchApps();
@@ -1057,8 +1075,6 @@ void CFE_TIME_ProcessServerToneLatch(CFE_TIME_SysTime_t ToneSignalLatch)
 void CFE_TIME_Tone1HzISR(void)
 {
     CFE_TIME_SysTime_t ToneSignalLatch;
-    CFE_TIME_SysTime_t Elapsed;
-    CFE_TIME_Compare_t Result;
 
     /* Start Performance Monitoring */
     CFE_ES_PerfLogEntry(CFE_MISSION_TIME_TONE1HZISR_PERF_ID);
@@ -1068,87 +1084,13 @@ void CFE_TIME_Tone1HzISR(void)
     */
     ToneSignalLatch = CFE_TIME_LatchClock();
 
-    /* Note: Could use this option here, but any reason not to include the server latch time in the
-     * packet for all configs? if (CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH == true)
-     */
-    CFE_TIME_Global.ToneSignalCmd.Payload.ServerToneSignalLatch = ToneSignalLatch;
-
-    /*
-    ** Compute elapsed time since the previous tone signal...
-    */
-    Result = CFE_TIME_Compare(ToneSignalLatch, CFE_TIME_Global.ToneSignalLatch);
-
-    if (Result == CFE_TIME_A_LT_B)
+    if (CFE_TIME_Process1HzTone(ToneSignalLatch) == CFE_SUCCESS)
     {
-        /*
-        ** Local clock has rolled over...
-        */
-        Elapsed = CFE_TIME_Subtract(CFE_TIME_Global.MaxLocalClock, CFE_TIME_Global.ToneSignalLatch);
-        Elapsed = CFE_TIME_Add(Elapsed, ToneSignalLatch);
-    }
-    else
-    {
-        /*
-        ** Normal case...
-        */
-        Elapsed = CFE_TIME_Subtract(ToneSignalLatch, CFE_TIME_Global.ToneSignalLatch);
-    }
-
-    /*
-    ** Verify that tone occurred ~1 second after previous tone...
-    */
-    if (((Elapsed.Seconds == 1) && (Elapsed.Subseconds < CFE_TIME_Global.ToneOverLimit))
-        || ((Elapsed.Seconds == 0) && (Elapsed.Subseconds > CFE_TIME_Global.ToneUnderLimit)))
-    {
-        /*
-        ** Maintain count of valid tone signal interrupts...
-        **   (set to zero by reset command)
-        */
-        CFE_TIME_Global.ToneIntCounter++;
-
-        /* Since the tone occurred ~1 seconds after the previous one, we
-        ** can mark this tone as 'good'
-        */
-        CFE_TIME_Global.IsToneGood = true;
-
-/*
-** Maintain virtual MET as count of valid tone signal interrupts...
-**   (not set to zero by reset command)
-*/
-#if (CFE_PLATFORM_TIME_CFG_VIRTUAL == true)
-        CFE_TIME_Global.VirtualMET++;
-#endif
-
-/*
-** Maintain virtual MET as count read from h/w MET register...
-*/
-#if (CFE_PLATFORM_TIME_CFG_VIRTUAL != true)
-        OS_GetLocalMET(&CFE_TIME_Global.VirtualMET);
-#endif
-
         /*
         ** Enable tone task (we can't send a SB message from here)...
         */
         OS_BinSemGive(CFE_TIME_Global.ToneSemaphore);
     }
-    else
-    {
-        /*
-        ** Maintain count of invalid tone signal interrupts...
-        **   (set to zero by reset command)
-        */
-        CFE_TIME_Global.ToneIntErrorCounter++;
-
-        /* Since the tone didn't occur ~1 seconds after the previous one, we
-        ** can mark this tone as 'not good'
-        */
-        CFE_TIME_Global.IsToneGood = false;
-    }
-
-    /*
-    ** Save local time latch of most recent tone signal...
-    */
-    CFE_TIME_Global.ToneSignalLatch = ToneSignalLatch;
 
     /* Notify registered time synchronization applications */
     CFE_TIME_NotifyTimeSynchApps();
@@ -1187,6 +1129,7 @@ void CFE_TIME_Tone1HzTask(void)
         /*
         ** Send tone signal command packet...
         */
+        CFE_TIME_Global.ToneSignalCmd.Payload.ServerToneSignalLatch = CFE_TIME_Global.ToneSignalLatch;
         CFE_SB_TransmitMsg(CFE_MSG_PTR(CFE_TIME_Global.ToneSignalCmd.CommandHeader), true);
 
 #if (CFE_PLATFORM_TIME_CFG_SERVER == true)

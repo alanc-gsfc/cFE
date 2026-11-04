@@ -442,21 +442,23 @@ int32 CFE_TIME_SendHkCmd(const CFE_TIME_SendHkCmd_t *data)
  *-----------------------------------------------------------------*/
 int32 CFE_TIME_ToneSignalCmd(const CFE_TIME_ToneSignalCmd_t *data)
 {
-#if (CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH == true)
-    /*
-    ** When the SERVER_TONE_LATCH option is selected (only for a client), pick up
-    ** the latched tone time from the server and process the 1hz tone simiar to the ISR
-    */
     CFE_TIME_SysTime_t ToneSignalLatch;
 
     ToneSignalLatch = data->Payload.ServerToneSignalLatch;
-    CFE_TIME_ProcessServerToneLatch(ToneSignalLatch);
+
+#if (CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH == true)
+    /*
+    ** When the SERVER_TONE_LATCH option is selected (only for a client),
+    ** The client will use the latched signal time from the server.
+    ** It will call this function in place of the 1HZ ISR and task.
+    */
+    CFE_TIME_ServerToneSignal(ToneSignalLatch);
 #endif
 
     /*
     ** Indication that tone signal occurred recently...
     */
-    CFE_TIME_ToneSignal();
+    CFE_TIME_ToneSignal(ToneSignalLatch);
 
     /*
     ** Note: we only increment the command execution counter when
