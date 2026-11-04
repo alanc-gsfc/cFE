@@ -51,6 +51,7 @@ void CFE_TIME_DebugLogOpen(void)
 {
     uint32 proc_id = CFE_PSP_GetProcessorId();
     char   file_name[32];
+    /* snprintf(file_name,32,"/temp/cpu_%d_time_log.csv",proc_id); QNX */
     snprintf(file_name,32,"cpu_%d_time_log.csv",proc_id);
     CFE_TIME_fptr = fopen(file_name, "w");
     if (CFE_TIME_fptr != NULL)
