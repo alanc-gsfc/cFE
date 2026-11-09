@@ -55,7 +55,7 @@ void CFE_TIME_DebugLogOpen(void)
     snprintf(file_name,32,"cpu_%d_time_log.csv",proc_id);
     CFE_TIME_fptr = fopen(file_name, "w");
     if (CFE_TIME_fptr != NULL)
-        fputs("Clock State,System Time Seconds,System Time Subseconds,cFS Time Seconds, cFS Time Subseconds,Latch Time Seconds, Latch Time Subseconds, Debug Info\n",CFE_TIME_fptr);
+        fputs("System Time Seconds,System Time Subseconds,cFS Time Seconds, cFS Time Subseconds,Latch Time Seconds, Latch Time Subseconds, Clock State, Debug String\n",CFE_TIME_fptr);
 }
 
 void CFE_TIME_DebugLogClose(void)
@@ -101,8 +101,8 @@ void CFE_TIME_DebugLogPrint(const char * debug_string)
     // Get current wall-clock time
     if (clock_gettime(CLOCK_REALTIME, &ts) == 0)
     {
-        snprintf(print_string,256,"%s,%lu,%lu,%u,%u,%u,%u,%s",
-                        clock_string,ts.tv_sec,ts.tv_nsec,time.Seconds,time.Subseconds,latch_time.Seconds, latch_time.Subseconds,debug_string);
+        snprintf(print_string,256,"%lu,%lu,%u,%u,%u,%u,%s,%s",
+                        ts.tv_sec,ts.tv_nsec,time.Seconds,time.Subseconds,latch_time.Seconds, latch_time.Subseconds,clock_string,debug_string);
 #if 1
         if (CFE_TIME_fptr != NULL)
         {

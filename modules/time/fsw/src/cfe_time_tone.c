@@ -150,6 +150,7 @@ void CFE_TIME_ToneSend(void)
     /*
     ** Send "time at the tone" command data packet...
     */
+    CFE_TIME_DebugLogPrint("Server sending TONE Data cmd\n");
     CFE_SB_TransmitMsg(CFE_MSG_PTR(CFE_TIME_Global.ToneDataCmd.CommandHeader), true);
 
     /*
@@ -1132,6 +1133,8 @@ void CFE_TIME_Tone1HzTask(void)
         /*
         ** Send tone signal command packet...
         */
+        CFE_TIME_DebugLogPrint("Server (1hz tone task) sending TONE Signal cmd\n");
+
         CFE_TIME_Global.ToneSignalCmd.Payload.ServerToneSignalLatch = CFE_TIME_Global.ToneSignalLatch;
         CFE_SB_TransmitMsg(CFE_MSG_PTR(CFE_TIME_Global.ToneSignalCmd.CommandHeader), true);
 
