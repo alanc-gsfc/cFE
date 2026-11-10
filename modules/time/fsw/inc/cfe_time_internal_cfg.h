@@ -71,7 +71,7 @@
 **       This option should only be enabled if CFE_PLATFORM_TIME_CLIENT is true
 */
 #define CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH         CFE_PLATFORM_TIME_CFGVAL(CFG_SERVER_TONE_LATCH)
-#define CPU1_CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH false 
+#define DEFAULT_CFE_PLATFORM_TIME_CFG_SERVER_TONE_LATCH false
 
 /**
 **  \cfetimecfg Local MET or Virtual MET Selection for Time Servers
